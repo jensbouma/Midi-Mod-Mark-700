@@ -30,7 +30,8 @@ boolean CClatchControl[6];
 const int midishift = 29;
 uint8_t velocity = 0x7F;
 
-unsigned long last_tick = 0UL ;
+unsigned long last_tick = 0UL;
+
 const byte light = 4;
 uint8_t lightIs = LOW;
 unsigned long lighTime = 0;
@@ -85,6 +86,29 @@ void setup()
 void loop()
 {  
   midi.update();
+
+  int bpm = map(analogRead(A0), 0, 1023, 20, 280); 
+  lightInterval = 60000 / (bpm * 4);
+
+  unsigned long currentMillis = millis();
+   
+   if(currentMillis - lighTime >= lightInterval){
+    lighTime = currentMillis;
+    if (lightIs == LOW){
+      lightIs = HIGH;
+    } else {
+      lightIs = LOW;
+    }
+    digitalWrite(light, lightIs);
+       digitalWrite(LED_BUILTIN, lightIs);
+  }
+  
+  unsigned long us_per_tick = (unsigned long) (1e6 / (bpm * 24.0 / 60.0)) ;
+  if ((micros () - last_tick) >= us_per_tick)
+  {
+    last_tick += us_per_tick ; // schedule next tick
+    midi.sendTimingClock();
+  }
   
   Control_Surface.loop();
 
@@ -118,29 +142,6 @@ void loop()
           }
         }
         Change();   
-  }
-
-  int bpm = map(analogRead(A0), 0, 1023, 20, 280); 
-  lightInterval = 60000 / bpm;
-
-  unsigned long currentMillis = millis();
-   
-   if(currentMillis - lighTime >= lightInterval){
-    lighTime = currentMillis;
-    if (lightIs == LOW){
-      lightIs = HIGH;
-    } else {
-      lightIs = LOW;
-    }
-    digitalWrite(light, lightIs);
-       digitalWrite(LED_BUILTIN, lightIs);
-  }
- 
-  unsigned long us_per_tick = (unsigned long) (1e6 / (bpm * 24.0 / 60.0)) ;
-  if ((micros () - last_tick) >= us_per_tick)
-  {
-    last_tick += us_per_tick ; // schedule next tick
-    midi.sendTimingClock();
   }
 }
 
